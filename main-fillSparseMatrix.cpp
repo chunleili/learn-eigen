@@ -55,7 +55,7 @@ SparseMatrix<double> fillMatrix4() {
 
 int main()
 {
-    auto mat = fillMatrix2();
+    auto mat = fillMatrix4();
     std::cout<<"nonzero elements: "<<mat.nonZeros()<<std::endl;
     
 }
