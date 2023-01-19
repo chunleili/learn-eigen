@@ -1,46 +1,84 @@
-// main-fillSparseMatrix.cpp
+//SparseMatrix1（去掉Qt的部分）
+
 #include <Eigen/Sparse>
-#include <Eigen/Dense> //支持dense matrix
-#include <unsupported/Eigen/SparseExtra> //支持从matrix market文件读取
+#include <vector>
 #include <iostream>
-using namespace Eigen;
+#include <fstream>
+#include "utils.h"
 
-const int N = 4, M = 4;
+/* -------------------------------------------------------------------------- */
+/*                            构建稀疏矩阵，从Laplace方程构建                    */
+/* -------------------------------------------------------------------------- */
+#define _USE_MATH_DEFINES
+#include <math.h>
 
-//方法1：使用coeffRef()方法
-SparseMatrix<double> fillMatrix1() {
-  SparseMatrix<double> m1(N,M);
-    // reserve()方法用于预先分配空间，避免后续的内存分配
-  m1.reserve(VectorXi::Constant(M, 4)); // 4: estimated number of non-zero enties per column
-  m1.coeffRef(0,0) = 1;
-  m1.coeffRef(0,1) = 2.;
-  m1.coeffRef(1,1) = 3.;
-  m1.coeffRef(2,2) = 4.;
-  m1.coeffRef(2,3) = 5.;
-  m1.coeffRef(3,2) = 6.;
-  m1.coeffRef(3,3) = 7.;
-  m1.makeCompressed();
-  return m1;
-}
-
-//方法2：从dense matrix转换而来
-SparseMatrix<double> fillMatrix2() {
-    MatrixXd mat_dense = MatrixXd::Random(N,M);
-    Eigen::SparseMatrix<double> mat = mat_dense.sparseView(0.5, 1);
-    return mat;
-}
-
-//方法3：从matrix market文件读取
-SparseMatrix<double> fillMatrix3() {
-    SparseMatrix<double> mat;
-    Eigen::loadMarket(mat, "e05r0500.mtx");
-    return mat;
-}
+typedef Eigen::SparseMatrix<double> SpMat; // declares a column-major sparse matrix type of double
+typedef Eigen::Triplet<double> T;
 
 
-int main()
+void insertCoefficient(int id, int i, int j, double w, std::vector<T>& coeffs,
+                       Eigen::VectorXd& b, const Eigen::VectorXd& boundary)
 {
-    auto mat = fillMatrix3();
-    std::cout<<"nonzero elements: "<<mat.nonZeros()<<std::endl;
-    
+  int n = int(boundary.size());
+  int id1 = i+j*n;
+ 
+        if(i==-1 || i==n) b(id) -= w * boundary(j); // constrained coefficient
+  else  if(j==-1 || j==n) b(id) -= w * boundary(i); // constrained coefficient
+  else  coeffs.push_back(T(id,id1,w));              // unknown coefficient
+}
+ 
+void buildProblem(std::vector<T>& coefficients, Eigen::VectorXd& b, int n)
+{
+  b.setZero();
+  Eigen::ArrayXd boundary = Eigen::ArrayXd::LinSpaced(n, 0,M_PI).sin().pow(2);
+  for(int j=0; j<n; ++j)
+  {
+    for(int i=0; i<n; ++i)
+    {
+      int id = i+j*n;
+      insertCoefficient(id, i-1,j, -1, coefficients, b, boundary);
+      insertCoefficient(id, i+1,j, -1, coefficients, b, boundary);
+      insertCoefficient(id, i,j-1, -1, coefficients, b, boundary);
+      insertCoefficient(id, i,j+1, -1, coefficients, b, boundary);
+      insertCoefficient(id, i,j,    4, coefficients, b, boundary);
+    }
+  }
+}
+
+
+/* -------------------------------------------------------------------------- */
+/*                                    求解矩阵                                 */
+/* -------------------------------------------------------------------------- */
+
+int main(int argc, char** argv)
+{
+  int n = 300;  // size of the image
+  int m = n*n;  // number of unknowns (=number of pixels)
+
+  // Assembly:
+  std::vector<T> coefficients;            // list of non-zeros coefficients
+  Eigen::VectorXd b(m);                   // the right hand side-vector resulting from the constraints
+  buildProblem(coefficients, b, n);
+ 
+  SpMat A(m,m);
+  A.setFromTriplets(coefficients.begin(), coefficients.end());
+ 
+  Profiler p;
+  p.start();
+  // Solving:
+  Eigen::SimplicialCholesky<SpMat> chol(A);  // performs a Cholesky factorization of A
+  Eigen::VectorXd x = chol.solve(b);         // use the factorization to solve for the given right hand side
+  p.end();
+  
+  if (chol.info()==Eigen::Success)
+    std::cout << "Solve Success" << std::endl;
+  else
+    std::cout << "Fail" << std::endl;
+
+  std::ofstream myfile;
+  myfile.open ("SparseMatrix1.txt");
+  myfile << x;
+  myfile.close();
+ 
+  return 0;
 }

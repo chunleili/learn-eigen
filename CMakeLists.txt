@@ -26,10 +26,10 @@ add_custom_command(
   VERBATIM
   )
 
-# 由于SparseMatrix1例子解 Laplace 方程需要用到Qt
+# 由于SparseMatrix1例子解 Laplace 方程需要用到Qt, 但其实只是多输出一张图。因此建议用main-SparseMatrix1.cpp 无Qt版本
 option(USE_QT "Use Qt" OFF)
 if(USE_QT)
   find_package(Qt5 COMPONENTS Core Gui Widgets REQUIRED)
-  add_executable(SparseMatrix1 main-SparseMatrix1.cpp buildProblem.cpp)
+  add_executable(SparseMatrix1 main-SparseMatrix1-Qt.cpp buildProblem.cpp)
   target_link_libraries(SparseMatrix1 Qt5::Gui Eigen3::Eigen)
 endif()

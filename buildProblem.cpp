@@ -1,3 +1,5 @@
+// 有Qt版本的SparseMatrix1 例子（官方算例即有Qt版本）
+
 #include <Eigen/Sparse>
 #include <vector>
 #include <QImage>
