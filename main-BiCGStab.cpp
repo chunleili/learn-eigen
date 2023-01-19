@@ -1,3 +1,4 @@
+//BiCGStab solver
 #include <Eigen/Sparse>
 #include <unsupported/Eigen/SparseExtra>
 #include <iostream>
