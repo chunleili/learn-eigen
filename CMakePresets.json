@@ -8,7 +8,7 @@
             "architecture": "x64",
             "binaryDir": "build",
             "cacheVariables": {
-                "CMAKE_TOOLCHAIN_FILE": "E:/codes/vcpkg/scripts/buildsystems/vcpkg.cmake"
+                "CMAKE_TOOLCHAIN_FILE": "c:/dev/vcpkg/scripts/buildsystems/vcpkg.cmake"
               }
         },
         {
